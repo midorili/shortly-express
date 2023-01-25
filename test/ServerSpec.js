@@ -49,9 +49,9 @@ describe('', function () {
     /* TODO: If you create a new MySQL tables, add it to the tablenames collection below. */
     /**************************************************************************************/
     var tablenames = ['links', 'clicks', 'users', 'sessions'];
-    console.log('hello from the outside');
+    // console.log('hello from the outside');
     db.connect(function (err) {
-      console.log('hello');
+      // console.log('hello');
       if (err) { return done(err); }
 
       /* Empties the db table before each test so that multiple tests
@@ -70,7 +70,7 @@ describe('', function () {
       var queryString = 'SELECT * FROM users';
       // console.log('db', db);
       db.query(queryString, function (err, results) {
-        console.log('hello from in here');
+        // console.log('hello from in here');
         if (err) { return done(err); }
 
         expect(results).to.deep.equal([]);
@@ -214,7 +214,7 @@ describe('', function () {
     });
   });
 
-  xdescribe('Account Login:', function () {
+  describe('Account Login:', function () {
 
     beforeEach(function (done) {
       var options = {
