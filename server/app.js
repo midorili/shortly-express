@@ -4,7 +4,7 @@ const utils = require('./lib/hashUtils');
 const partials = require('express-partials');
 const Auth = require('./middleware/auth');
 const models = require('./models');
-
+const cookieParser = require('./middleware/cookieParser.js');
 const app = express();
 
 app.set('views', `${__dirname}/views`);
@@ -13,6 +13,7 @@ app.use(partials());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../public')));
+// app.use(cookieParser);
 
 
 
@@ -82,7 +83,7 @@ app.post('/login', (req, res, next) => {
   var password = req.body.password;
   models.Users.get({ username })
     .then(results => {
-      console.log(results);
+      // console.log(results);
       if (results) {
         if (models.Users.compare(password, results.password, results.salt)) {
           res.redirect('/');
@@ -114,6 +115,7 @@ app.post('/signup', (req, res, next) => {
 
 });
 
+app.use(cookieParser);
 
 /************************************************************/
 // Handle the code parameter route last - if all other routes fail
