@@ -5,6 +5,8 @@ const partials = require('express-partials');
 const Auth = require('./middleware/auth');
 const models = require('./models');
 const cookieParser = require('./middleware/cookieParser.js');
+const session = require('./middleware/auth.js');
+
 const app = express();
 
 app.set('views', `${__dirname}/views`);
@@ -77,6 +79,16 @@ app.post('/links',
 /************************************************************/
 // Write your authentication routes here
 /************************************************************/
+app.get('/login',
+  (req, res) => {
+    res.render('login');
+  });
+
+app.get('/signup',
+  (req, res) => {
+    res.render('signup');
+  });
+
 app.post('/login', (req, res, next) => {
   // console.log('req', req.body);
   var username = req.body.username;
@@ -86,6 +98,7 @@ app.post('/login', (req, res, next) => {
       // console.log(results);
       if (results) {
         if (models.Users.compare(password, results.password, results.salt)) {
+          // req.userData = { username: req.body.username, userId: results.id };
           res.redirect('/');
         } else {
           res.redirect('/login');
@@ -105,8 +118,10 @@ app.post('/signup', (req, res, next) => {
       if (result) {
         res.redirect('/signup');
       } else {
-        models.Users.create({ username, password });
-        res.redirect('/');
+        models.Users.create({ username, password })
+          .then(userInserted => {
+            res.redirect('/');
+          });
       }
     })
     .catch(err => {
@@ -116,7 +131,7 @@ app.post('/signup', (req, res, next) => {
 });
 
 app.use(cookieParser);
-
+app.use(session.createSession);
 /************************************************************/
 // Handle the code parameter route last - if all other routes fail
 // assume the route is a short code and try and handle it here.
