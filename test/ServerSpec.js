@@ -248,6 +248,23 @@ describe('', function () {
       });
     });
 
+    it('Redirects to login page on wrong password', function (done) {
+      var options = {
+        'method': 'POST',
+        'uri': 'http://127.0.0.1:4568/login',
+        'json': {
+          'username': 'Samantha',
+          'password': 'Fred'
+        }
+      };
+
+      request(options, function (error, res, body) {
+        if (error) { return done(error); }
+        expect(res.headers.location).to.equal('/login');
+        done();
+      });
+    });
+
     it('Users that do not exist are kept on login page', function (done) {
       var options = {
         'method': 'POST',
@@ -441,6 +458,42 @@ describe('', function () {
         });
       });
 
+      it('should add session to the request object', function (done) {
+        var requestWithoutCookies = httpMocks.createRequest();
+        var response = httpMocks.createResponse();
+
+        createSession(requestWithoutCookies, response, function () {
+          console.log('no cookies', requestWithoutCookies);
+          var sessionHashOne = requestWithoutCookies.session.hash;
+          var secondRequestWithoutCookies = httpMocks.createRequest();
+          var responseTwo = httpMocks.createResponse();
+
+          createSession(secondRequestWithoutCookies, responseTwo, function () {
+            var sessionHashTwo = secondRequestWithoutCookies.session.hash;
+            expect(requestWithoutCookies.session).to.exist;
+            done();
+          });
+        });
+      });
+
+      it('should add cookies object to the request object', function (done) {
+        var requestWithoutCookies = httpMocks.createRequest();
+        var response = httpMocks.createResponse();
+
+        createSession(requestWithoutCookies, response, function () {
+          console.log('no cookies', requestWithoutCookies);
+          var sessionHashOne = requestWithoutCookies.session.hash;
+          var secondRequestWithoutCookies = httpMocks.createRequest();
+          var responseTwo = httpMocks.createResponse();
+
+          createSession(secondRequestWithoutCookies, responseTwo, function () {
+            var sessionHashTwo = secondRequestWithoutCookies.session.hash;
+            expect(requestWithoutCookies.cookies).to.exist;
+            done();
+          });
+        });
+      });
+
       it('assigns a username and userId property to the session object if the session is assigned to a user', function (done) {
         var requestWithoutCookie = httpMocks.createRequest();
         var response = httpMocks.createResponse();
@@ -486,7 +539,7 @@ describe('', function () {
     });
   });
 
-  xdescribe('Sessions and cookies', function () {
+  describe('Sessions and cookies', function () {
     var requestWithSession;
     var cookieJar;
 
@@ -546,6 +599,7 @@ describe('', function () {
         db.query(queryString, cookieValue, function (error, users) {
           if (error) { return done(error); }
           var user = users[0];
+          // console.log('users', users);
           expect(user.username).to.equal('Vivian');
           done();
         });
@@ -562,7 +616,11 @@ describe('', function () {
           if (error) { return done(error); }
 
           var cookies = cookieJar.getCookies('http://127.0.0.1:4568/');
+
           var newCookieValue = cookies[0].value;
+          console.log('cookie', newCookieValue);
+          console.log('cookie value', cookieValue);
+
           expect(cookieValue).to.not.equal(newCookieValue);
 
           var queryString = 'SELECT * FROM sessions WHERE hash = ?';
@@ -576,7 +634,7 @@ describe('', function () {
     });
   });
 
-  xdescribe('Privileged Access:', function () {
+  describe('Privileged Access:', function () {
 
     it('Redirects to login page if a user tries to access the main page and is not signed in', function (done) {
       request('http://127.0.0.1:4568/', function (error, res, body) {
@@ -603,7 +661,7 @@ describe('', function () {
     });
   });
 
-  xdescribe('Link creation:', function () {
+  describe('Link creation:', function () {
 
     var cookies = request.jar();
     var requestWithSession = request.defaults({ jar: cookies });

@@ -4,10 +4,10 @@ const Promise = require('bluebird');
 
 module.exports.createSession = (req, res, next) => {
   // var username = req.body.username;
-  var password = req.body.password;
+  // var password = req.body.password;
   req.session = {};
   // query database for session
-  if (req.cookies.shortlyid) {
+  if (req.cookies) {
     models.Sessions.get({ hash: req.cookies.shortlyid })
       .then(result => {
         if (result) {
@@ -27,7 +27,6 @@ module.exports.createSession = (req, res, next) => {
           } else {
             next();
           }
-
         } else {
           models.Sessions.create()
             .then(result => {
@@ -67,7 +66,7 @@ module.exports.createSession = (req, res, next) => {
   } else {
     models.Sessions.create()
       .then(result => {
-        console.log('ressi', result);
+        // console.log('ressi', result);
         models.Sessions.get({ id: result.insertId })
           .then(TextRow => {
             req.session.hash = TextRow.hash;

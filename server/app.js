@@ -5,8 +5,6 @@ const partials = require('express-partials');
 const Auth = require('./middleware/auth');
 const models = require('./models');
 const cookieParser = require('./middleware/cookieParser.js');
-const session = require('./middleware/auth.js');
-
 const app = express();
 
 app.set('views', `${__dirname}/views`);
@@ -15,21 +13,44 @@ app.use(partials());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../public')));
-// app.use(cookieParser);
+app.use(cookieParser);
+app.use(Auth.createSession);
 
+var verifySession = (req, res, next) => {
+  // if req.session has a user
+  // console.log('sesh', req.session);
+  // if (models.Sessions.isLoggedIn(req.session)) {
+  //   if (req.session.user) {
+  //     res.render('index');
+  //   } else {
+  //     res.redirect('/login');
+  //   }
+  // } else {
+  //   next();
+  // }
 
+  if (!models.Sessions.isLoggedIn(req.session)) {
+    res.redirect('/login');
+  } else {
+    next();
+  }
+};
 
-app.get('/',
+app.get('/', verifySession,
   (req, res) => {
+    // console.log('sesh2', req.session);
+
     res.render('index');
+    // verifySession(req.session);
   });
 
-app.get('/create',
+app.get('/create', verifySession,
   (req, res) => {
     res.render('index');
+    // verifySession(req.session);
   });
 
-app.get('/links',
+app.get('/links', verifySession,
   (req, res, next) => {
     models.Links.getAll()
       .then(links => {
@@ -79,6 +100,7 @@ app.post('/links',
 /************************************************************/
 // Write your authentication routes here
 /************************************************************/
+
 app.get('/login',
   (req, res) => {
     res.render('login');
@@ -89,6 +111,17 @@ app.get('/signup',
     res.render('signup');
   });
 
+app.get('/logout', (req, res, next) => {
+  models.Sessions.delete({ hash: req.session.hash })
+    .then(confirmDelete => {
+      res.cookie('shortlyid', '');
+      res.redirect('/login');
+    })
+    .error(error => {
+      res.status(500).send(error);
+    });
+});
+
 app.post('/login', (req, res, next) => {
   // console.log('req', req.body);
   var username = req.body.username;
@@ -97,9 +130,18 @@ app.post('/login', (req, res, next) => {
     .then(results => {
       // console.log(results);
       if (results) {
+        // console.log('resultID', results.id);
         if (models.Users.compare(password, results.password, results.salt)) {
+          return models.Sessions.update({ hash: req.session.hash }, { userId: results.id })
+            .then(update => {
+              // console.log('update', update);
+              req.session.user = results.username;
+              req.session.userId = update.insertId;
+              // console.log('session', req.session);
+              res.redirect('/');
+            });
           // req.userData = { username: req.body.username, userId: results.id };
-          res.redirect('/');
+
         } else {
           res.redirect('/login');
         }
@@ -120,7 +162,14 @@ app.post('/signup', (req, res, next) => {
       } else {
         models.Users.create({ username, password })
           .then(userInserted => {
-            res.redirect('/');
+            models.Sessions.update({ hash: req.session.hash }, { userId: userInserted.insertId })
+              .then(update => {
+                // console.log('update', update);
+                req.session.user = { username };
+                req.session.userId = update.insertId;
+                // console.log('session', req.session);
+                res.redirect('/');
+              });
           });
       }
     })
@@ -130,8 +179,8 @@ app.post('/signup', (req, res, next) => {
 
 });
 
-app.use(cookieParser);
-app.use(session.createSession);
+// app.use(cookieParser);
+// app.use(session.createSession);
 /************************************************************/
 // Handle the code parameter route last - if all other routes fail
 // assume the route is a short code and try and handle it here.
